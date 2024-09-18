@@ -157,4 +157,5 @@ $DOCKER_OPTS $IMG_NAME /bin/sh -ex -c 'echo "Starting building postgres binaries
         lib \
         bin/initdb \
         bin/pg_ctl \
-        bin/postgres'
+        bin/postgres \
+        bin/psql'
