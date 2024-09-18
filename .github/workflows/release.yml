@@ -258,9 +258,35 @@ jobs:
         with:
           name: ppc64leAlpineLiteBundle
           path: alpine-lite-platforms/build/tmp/buildPpc64leAlpineLiteBundle/bundle/postgres-linux-alpine_linux.txz
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: master
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: 15
+      - name: Set environment variables
+        env:
+          MILESTONE_VERSION: ${{ github.event.milestone.title }}
+        run: |
+          echo "RELEASE_VERSION=$MILESTONE_VERSION" >> $GITHUB_ENV
+          echo "POSTGRES_VERSION=${MILESTONE_VERSION%.*}" >> $GITHUB_ENV
+      - name: Build Bundle
+        run: ./gradlew :repacked-platforms:buildAmd64DarwinBundle -Pversion=$RELEASE_VERSION -PpgVersion=$POSTGRES_VERSION
+      - name: Upload bundle
+        uses: actions/upload-artifact@v2
+        with:
+          name: amd64DarwinBundle
+          path: repacked-platforms/build/tmp/buildAmd64DarwinBundle/bundle/postgres-darwin-x86_64.txz
   release:
     name: Collect artifacts & Release ${{ github.event.milestone.title }}
-    needs: [debian-arm32v7, debian-arm64v8, debian-ppc64le, alpine-arm32v6, alpine-arm64v8, alpine-ppc64le, alpine-lite-arm32v6, alpine-lite-arm64v8, alpine-lite-ppc64le]
+    needs: [debian-arm32v7, debian-arm64v8, debian-ppc64le, alpine-arm32v6, alpine-arm64v8, alpine-ppc64le, alpine-lite-arm32v6, alpine-lite-arm64v8, alpine-lite-ppc64le, macos]
     if: ${{ !failure() }}
     runs-on: ubuntu-latest
     steps:
@@ -331,6 +357,11 @@ jobs:
         with:
           name: ppc64leAlpineLiteBundle
           path: alpine-lite-platforms/build/tmp/buildPpc64leAlpineLiteBundle/bundle
+      - name: Download bundle - amd64Darwin
+        uses: actions/download-artifact@v2
+        with:
+          name: amd64DarwinBundle
+          path: repacked-platforms/build/tmp/buildAmd64DarwinBundle/bundle
       - name: Release with Gradle
         if: ${{ !(startsWith(github.event.milestone.title, '16.')) }}
         env:
